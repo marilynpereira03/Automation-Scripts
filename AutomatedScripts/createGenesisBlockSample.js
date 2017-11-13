@@ -464,7 +464,7 @@ let index =(solve[0] * x) + (countForAwsSecretKey * y) + k;
     config.nethash = genesisBlock.payloadHash; //set the nethash in config file
     //to customize the address and peers list field in config.json file , we have included the below piece of code
     config.address = peer.publicDNS; // setting up Public DNS(IPv4) of AWS in the generated config file, to avoid manually entering the same.
-    fs.writeFile("/home/marilyn/Documents/BLOCKPOOL/MARILYN/Sidechain/AutomatedScripts/BPL-node/private/config_files/config." + config.network + "." + peer.ip + ".json", JSON.stringify(config, null, 2));
+    fs.writeFile("../private/config." + config.network + "." + peer.ip + ".json", JSON.stringify(config, null, 2));
     for (let k = 0; k < x; k++) {
         console.log("In POP");
         config.forging.secret.pop();
@@ -472,7 +472,7 @@ let index =(solve[0] * x) + (countForAwsSecretKey * y) + k;
 });
 
 
-fs.writeFile("/home/marilyn/Documents/BLOCKPOOL/MARILYN/Sidechain/AutomatedScripts/BPL-node/private/genesisBlock.private.json", JSON.stringify(genesisBlock, null, 2));
-fs.writeFile("/home/marilyn/Documents/BLOCKPOOL/MARILYN/Sidechain/AutomatedScripts/BPL-node/private/config.private.json", JSON.stringify(config, null, 2));
-fs.writeFile("/home/marilyn/Documents/BLOCKPOOL/MARILYN/Sidechain/AutomatedScripts/BPL-node/private/delegatesPassphrases.private.json", JSON.stringify(delegates, null, 2));
-fs.writeFile("/home/marilyn/Documents/BLOCKPOOL/MARILYN/Sidechain/AutomatedScripts/BPL-node/private/genesisPassphrase.private.json", JSON.stringify(genesis, null, 2));
+fs.writeFile("../private/genesisBlock.private.json", JSON.stringify(genesisBlock, null, 2));
+fs.writeFile("../private/config.private.json", JSON.stringify(config, null, 2));
+fs.writeFile("../private/delegatesPassphrases.private.json", JSON.stringify(delegates, null, 2));
+fs.writeFile("../private/genesisPassphrase.private.json", JSON.stringify(genesis, null, 2));

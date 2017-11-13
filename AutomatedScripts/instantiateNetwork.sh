@@ -6,24 +6,25 @@ if bash awsScript.sh credential.json
   else
     echo "Fail to create instances"
 fi
-path=/home/marilyn/Documents/BLOCKPOOL/MARILYN/Sidechain/AutomatedScripts
+path=/home/marilyn/Documents/BLOCKPOOL/MARILYN/Sidechain/Automation-Scripts/AutomatedScripts/
 pathOfPemFile=/home/marilyn/Downloads/harbinger_instance.pem
 
 #need to provide this information first time
-pathForConfigFile=$path/BPL-node/private/config_files
+pathForConfigFile=$path/BPL-node/private
 pathForGenesisBlockFile=$path/BPL-node/private/genesisBlock.private.json
 pathToCreateConfigFile=$path//BPL-node/tasks/
 ipListFilePath=$path/ipList.txt
 publicDNSFilePath=$path/publicDnsList.txt
 devloperInstallationSteps=$path/developerInstallation.sh
 startNodeScriptPath=$path/mainnet_start.sh
-cd && mkdir /home/marilyn/Documents/BLOCKPOOL/MARILYN/Sidechain/AutomatedScripts/BPL-node/private/config_files && cd /home/marilyn/Documents/BLOCKPOOL/MARILYN/Sidechain/AutomatedScripts
+
+rm -rf BPL-node
+
 if bash developerInstallation.sh 0
  then
     if cp createGenesisBlockSample.js BPL-node/tasks/
       then
          echo "Copied"
-
       else
           echo "Not copied"
     fi
