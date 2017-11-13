@@ -1,0 +1,11 @@
+
+Create AWS IAM user and copy IAM user's access key id and secret access key
+      Steps tp create IAM user:
+      I.  Open the IAM console.
+      II. In the navigation panel of the console, chooseUsers.
+      III.Choose your IAM user name (not the check box).
+      IV. Choose the Security credentials tab and then choose Create access key.
+      V.  To see the new access key, choose Show. Your credentials will look something like this:
+            •Access key ID: AKIAIOSFODNN7EXAMPLE
+            •Secret access key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+      VI. To download the key pair, choose Download .csv file. Store the keys in a secure location
