@@ -1,6 +1,6 @@
 #! /bin/bash
 #Constants String needed
-configFileFirstPart="/config.BPL-testnet."
+configFileFirstPart="/config.sidechain."
 configFileLastPart=".json"
 #We will place these files on remote server and then installed it on script folder
 #download file using curl command
@@ -32,9 +32,12 @@ echo "jq installed Successfully"
       do
         #String concatenation to form ubuntu@IPAddress
         address=$address1${arr[$i]}
+        echo 'Address value'
+        echo ${address}
+        scp -oStrictHostKeyChecking=no -i $pemFilePath credential.json $address:/home/ubuntu/credential.json
         ssh -oStrictHostKeyChecking=no -i $pemFilePath $address "bash -s" -- < $devloperInstallationSteps 1
         scp -oStrictHostKeyChecking=no -i $pemFilePath $configFilePath$configFileFirstPart${arr[$i]}$configFileLastPart $address:/home/ubuntu/BPL-node/
-        scp -oStrictHostKeyChecking=no -i $pemFilePath $genesisFilePath $address:/home/ubuntu/BPL-node/genesisBlock.testnet.json
+        scp -oStrictHostKeyChecking=no -i $pemFilePath $genesisFilePath $address:/home/ubuntu/BPL-node/genesisBlock.sidechain.json
         #install developer instalation on AWS instance
         #Run a node
         ssh -oStrictHostKeyChecking=no -i $pemFilePath $address "bash -s" -- < $startNodeScriptPath

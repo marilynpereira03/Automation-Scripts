@@ -94,7 +94,8 @@ var config = {
             "cert": "./ssl/bpl.crt"
         }
     },
-    "network": "BPL-testnet"
+    "network": "BPL-mainnet",
+    "tokenShortName": "BPL"
 };
 //Argument accepted from user
 //Configuration changes made by Avinash
@@ -112,13 +113,18 @@ program
     .option('-m, --networkName <networkName>', 'Network name')
     .option('-a, --awsCount <awsCount>', 'AWS instances count')
     .option('-i, --ipPath <ipPath>', 'File which contents all ip list')
-    .option('-k, --publicDnsPath <publicDnsPath>', 'fi;e which contants all public dns list')
+    .option('-k, --publicDnsPath <publicDnsPath>', 'file which contants all public dns list')
+    .option('-t, --tokenShortName <tokenShortName>', 'Token short name')
+
     .parse(process.argv)
 
 var ipFilePath;
 var publicDnsPath;
 if (program.port) {
     config.port = program.port;
+}
+if(program.tokenShortName) {
+ config.tokenShortName = program.tokenShortName;
 }
 if(program.ipPath) {
  ipFilePath = program.ipPath;
@@ -147,7 +153,10 @@ if (program.awsCount) {
 
 var ipList = fs.readFileSync(ipFilePath);
 ipList = ipList.toString();
+console.log(ipList);
 ipList = ipList.replace(/\n$/, '');
+console.log("Iplist 888888888888888",ipList);
+
 var ipListArray = ipList.split(" ");
 
 var publicDnsList = fs.readFileSync(publicDnsPath);

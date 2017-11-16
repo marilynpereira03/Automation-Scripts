@@ -2,7 +2,31 @@
 #!/bin/bash
 
 GIT_CLONE_PATH=https://github.com/marilynpereira03/BPL-node.git
+if sudo apt install -y jq
+   then
+   echo "Installed JQ successfully"
+ else
+   echo "Fail To install jq"
+   sudo apt install -y jq
+ fi
+sudo apt install -y jq
+function readArgumentsFromFile()
+{
+  fname=$1
+  activeDelegates=$(jq .activeDelegates $fname)
+  blockTime=$(jq .blockTime $fname)
+  distance=$(jq .distance $fname)
+  logo=$(jq .logo $fname)
+  milestones=$(jq .milestones[] $fname)
+  echo "milestones In developerInstallation $milestones"
+  offset=$(jq .offset $fname)
+  rewardType=$(jq .rewardType $fname)
+  fixedLastReward=$(jq .fixedLastReward $fname)
+  blockSize=$(jq .blockSize $fname)
+  token=$(jq .token $fname)
+}
 
+readArgumentsFromFile /home/ubuntu/credential.json
 #Basic installations
 if sudo apt-get install git
  then
@@ -16,6 +40,8 @@ if sudo apt-get install git
      echo "No BPL directoty"
    fi
    echo -e "Clonning the repository $GIT_CLONE_PATH\n"
+   rm -rf BPL-node
+
    #Clones the repository
    if git clone $GIT_CLONE_PATH
     then
@@ -53,8 +79,9 @@ if sudo apt-get install git
       npm install libpq secp256k1
       npm install
       npm install linear-solve --save
-
-
+      cd scripts
+      #Modify BPL-node parameters like BLocktime, reward, blocksize, offset, distance
+      node modifyConfiguration.js --activedelegates $activeDelegates --blocktime $blockTime --distance $distance --fixedLastReward $fixedLastReward --logo $logo --milestones [3000000000,2000000000,1000000000] --offset $offset --rewardType $rewardType --blockSize $blockSize --token $token
       choice=$1
       if [ $choice -eq 1 ]
        then
@@ -62,11 +89,9 @@ if sudo apt-get install git
         dropdb sidechain
         echo -e "Creating database"
         createdb sidechain
-        psql sidechain -c "alter user ubuntu with password 'blockpool123'"
+        psql sidechain -c "alter user ubuntu with password 'sidechain123'"
       else
         echo
       fi
-
-
     fi
  fi
