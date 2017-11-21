@@ -86,8 +86,8 @@ function readFromJsonFile(){
         regionArray=(${region//,/ })
         for i in "${!regionArray[@]}"
         do
-            regionArray[$i]=$(echo ${regionArray[i]} | sed 's/","/,/g; s/^"\|"$//g')
-            echo ${regionArray[i]}
+            regionArray[$i]=$(echo ${regionArray[$i]} | sed 's/","/,/g; s/^"\|"$//g')
+            echo ${regionArray[$i]}
         done
         #end of region name
 
@@ -117,7 +117,8 @@ function readFromJsonFile(){
             #This for loop will create VPC id , security group id, Key value pair file, Subnet id in each region specified
             for i in "${!imageIdArray[@]}"
             do
-              #configure region ID
+              #configure region ID aws configure set region us-east-1
+
               if aws configure set region ${regionArray[$i]}
                 then
                 echo "Configured successfully"
@@ -128,9 +129,6 @@ function readFromJsonFile(){
              vpcId=$(aws ec2 describe-vpcs | grep -m 1 "VpcId" |  awk -F ":" '{print $2}' | sed 's/[",]//g' || aws ec2 create-vpc --cidr-block 10.0.0.0/24 | grep 'VpcId' | awk -F ":" '{print $2}' | sed 's/[",]//g')
              vpcId=$(echo $vpcId | sed 's/","/,/g; s/^"\|"$//g')
              #parse subnet id name
-             subnet_id=$(aws ec2 describe-subnets --filters Name=vpc-id,Values=$vpcId | grep -m 1 'SubnetId' |  awk -F ":" '{print $2}' || aws ec2 create-subnet --vpc-id $vpcId --cidr-block 100.0.0.128/25 |  grep 'SubnetId' | awk -F ":" '{print $2}' | sed 's/[",]//g')
-             #remove double qoutes from word
-             subnet_id=$(echo $subnet_id | sed 's/,*$//g' | sed 's/","/,/g; s/^"\|"$//g')
 
              security_group_id=$(aws ec2 describe-security-groups --filters Name=vpc-id,Values=$vpcId | grep -m 1 'GroupId' | awk -F ":" '{print $2}' | sed 's/[",]//g' || aws ec2 create-security-group --group-name MySecurityGroup3 --description "My security group" --vpc-id $vpcId | grep 'GroupId' | awk -F ":" '{print $2}' | sed 's/[",]//g')
              #remove double qoutes from word
@@ -149,8 +147,36 @@ function readFromJsonFile(){
             fi
                  key_value_pair_name=blockpool_sample_${regionArray[$i]}
 
+          avalabilityZone=$(aws ec2 describe-availability-zones | grep ZoneName | awk -F ":" '{print $2}' | sed 's/[",]//g' |  wc -l)
+
+          echo "avalabilityZone $avalabilityZone"
+          remainder=$(( ${countArray[$i]} % $avalabilityZone ))
+          echo "$remainder"
+          distribute=$(( ${countArray[$i]}/$avalabilityZone ))
+          echo "$distribute"
+          ListAZ=$(aws ec2 describe-availability-zones | grep ZoneName | awk -F ":" '{print $2}' | sed 's/[",]//g')
+          echo "ListAZ $ListAZ"
+          arrayListAZ=($ListAZ)
+            for j in "${!arrayListAZ[@]}"
+                  do
+              	    if [[ $j -eq 0 ]]
+                     then
+                      		distribute=$(( $distribute + $remainder ))
+                      		echo "distribute $distribute j $j"
+                     fi
+                     if [[ $j -eq 1 ]]
+                       then
+                      		distribute=$(( $distribute - $remainder ))
+                      		echo "count $distribute j $j"
+                     fi
+                          arrayListAZ[$j]=$(echo ${arrayListAZ[$j]} | sed 's/","/,/g; s/^"\|"$//g')
+                          echo ${arrayListAZ[$j]}
+                          subnet_id=$(aws ec2 describe-subnets --filters Name=vpc-id,Values=$vpcId,Name="availability-zone",Values=${arrayListAZ[$j]} | grep -m 1 'SubnetId' |  awk -F ":" '{print $2}' || aws ec2 create-subnet --vpc-id $vpcId --availability-zone ${arrayListAZ[$j]} --cidr-block 100.0.0.128/25 |  grep 'SubnetId' | awk -F ":" '{print $2}' | sed 's/[",]//g')
+                          #remove double qoutes from word
+                          subnet_id=$(echo $subnet_id | sed 's/,*$//g' | sed 's/","/,/g; s/^"\|"$//g')
+                          createInstance ${regionArray[$i]} ${imageIdArray[$i]} $distribute $subnet_id $security_group_id $key_value_pair_name ${arrayListAZ[$j]}
+                  done
                  #create required instances
-                 createInstance ${regionArray[$i]} ${imageIdArray[$i]} ${countArray[$i]} $subnet_id $security_group_id $key_value_pair_name
                  #wait for 5 second
                  sleep 2
                  #save public IP's of all created instances
@@ -202,8 +228,8 @@ function configureAwsAccount()
 #save all instances IP in text file
 function saveIpInFile()
 {
-  ipList=$(aws ec2 describe-instances | grep PublicIpAddress | awk -F ":" '{print $2}' | sed 's/[",]//g')
-  publicDnsList=$(aws ec2 describe-instances | grep PublicDnsName | awk -F ":" '{print $2}' | sed 's/[",]//g')
+  ipList=$(aws ec2 describe-instances --filters "Name=vpc-id,Values=$vpcId" "Name=key-name,Values=$key_value_pair_name" | grep PublicIpAddress | awk -F ":" '{print $2}' | sed 's/[",]//g')
+  publicDnsList=$(aws ec2 describe-instances --filters "Name=vpc-id,Values=$vpcId" "Name=key-name,Values=$key_value_pair_name" | grep PublicDnsName | awk -F ":" '{print $2}' | sed 's/[",]//g')
   echo $publicDnsList > publicDnsList_$1.txt
   echo -ne $publicDnsList >> publicDnsList.txt
   echo -ne " " >> publicDnsList.txt
@@ -239,6 +265,7 @@ function createInstance()
   temp_subnet_id=$4
   temp_security_group_id=$5
   temp_key_value=$6
+  temp_availability_zone=$7
   echo "Do you want to create aws instance? (y)es or (n)o"
   read userInputForCreatingInstance
    if [ $userInputForCreatingInstance == "y" ] || [ $userInputForCreatingInstance == "Y" ]
@@ -247,9 +274,9 @@ function createInstance()
        then
          echo "You cannot create more than 20 instance or Increase limit on No. of instances per region from AWS EC2 console"
        else
-          if aws ec2 run-instances --image-id $temp_image_id --count $temp_count --instance-type $instance_type --key-name $temp_key_value --security-group-ids $temp_security_group_id --subnet-id $temp_subnet_id --region $temp_region
+            if aws ec2 run-instances --image-id $temp_image_id --count $temp_count --instance-type $instance_type --key-name $temp_key_value --security-group-ids $temp_security_group_id --subnet-id $temp_subnet_id --region $temp_region --placement AvailabilityZone=$temp_availability_zone
           then
-            echo "successfully created $count instances"
+            echo "successfully created $temp_count instances"
           else
             echo "Fail to create instances"
           fi
