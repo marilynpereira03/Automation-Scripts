@@ -61,6 +61,9 @@ function numberOfArguments(){
 #read json file for access_key_id and secret access key
 function readFromFile(){
  local fname=$1
+ #parse key pair file name
+ keyPairName=$(jq .keyPairName $fname)
+ keyPairName=$(echo $keyPairName | sed 's/","/,/g; s/^"\|"$//g')
   #parse access key id
   access_key_id=$(jq .access_key_id $fname)
   access_key_id=$(echo $access_key_id | sed 's/","/,/g; s/^"\|"$//g')
@@ -75,44 +78,48 @@ function readFromJsonFile(){
       filename=$1
       # parese port number
       port=$(jq .port $filename)
-       #parse instance type
-       instance_type=$(jq .instance_type $filename)
-       #remove double qoutes from word
-       instance_type=$(echo $instance_type | sed 's/","/,/g; s/^"\|"$//g')
+
+
       #parse region name
-      region=$(jq .region[] $filename)
+      region=$(jq ".region | .[] | .region" $filename)
 
       set -f
-        regionArray=(${region//,/ })
+        regionArray=(${region})
         for i in "${!regionArray[@]}"
         do
             regionArray[$i]=$(echo ${regionArray[$i]} | sed 's/","/,/g; s/^"\|"$//g')
-            echo ${regionArray[$i]}
         done
         #end of region name
-
         #parse image name
-        image_id=$(jq .image_id[] $filename)
+        image_id=$(jq ".region | .[] | .image_id" $filename)
 
         set -f
-          imageIdArray=(${image_id//,/ })
+          imageIdArray=(${image_id})
           for i in "${!imageIdArray[@]}"
           do
               imageIdArray[$i]=$(echo ${imageIdArray[i]} | sed 's/","/,/g; s/^"\|"$//g')
-              echo ${imageIdArray[i]}
           done
           #end of image name
 
           #parse count for number of instances in particular region
-          count=$(jq .count[] $filename)
-
+          count=$(jq ".region | .[] | .count" $filename)
           set -f
-            countArray=(${count//,/ })
+            countArray=(${count})
             for i in "${!countArray[@]}"
             do
-                echo ${countArray[i]}
+                echo
             done
             #end of count
+
+            instanceType=$(jq ".region | .[] | .instanceType" $filename)
+            set -f
+              instanceTypeArray=(${instanceType})
+              for i in "${!instanceTypeArray[@]}"
+              do
+                #remove double qoutes from word
+                instanceTypeArray[$i]=$(echo ${instanceTypeArray[$i]} | sed 's/","/,/g; s/^"\|"$//g')
+              done
+
 
             #This for loop will create VPC id , security group id, Key value pair file, Subnet id in each region specified
             for i in "${!imageIdArray[@]}"
@@ -135,46 +142,29 @@ function readFromJsonFile(){
              security_group_id=$(echo $security_group_id | sed 's/","/,/g; s/^"\|"$//g')
 
              #parse aws security group id name
-             if [ -f blockpool_sample_${regionArray[$i]}.pem ]
-              then echo
-            else
-                if aws ec2 create-key-pair --key-name blockpool_sample_${regionArray[$i]} --query 'KeyMaterial' --output text > blockpool_sample_${regionArray[$i]}.pem
-                 then
-                    echo "Key Value pair file created"
-                 else
-                    echo "Fail to create key value pair file"
-                 fi
-            fi
-                 key_value_pair_name=blockpool_sample_${regionArray[$i]}
+             importPublicKey $publicKey
+             key_value_pair_name=$keyPairName
 
           avalabilityZone=$(aws ec2 describe-availability-zones | grep ZoneName | awk -F ":" '{print $2}' | sed 's/[",]//g' |  wc -l)
-
-          echo "avalabilityZone $avalabilityZone"
           remainder=$(( ${countArray[$i]} % $avalabilityZone ))
-          echo "$remainder"
           distribute=$(( ${countArray[$i]}/$avalabilityZone ))
-          echo "$distribute"
           ListAZ=$(aws ec2 describe-availability-zones | grep ZoneName | awk -F ":" '{print $2}' | sed 's/[",]//g')
-          echo "ListAZ $ListAZ"
           arrayListAZ=($ListAZ)
             for j in "${!arrayListAZ[@]}"
                   do
               	    if [[ $j -eq 0 ]]
                      then
                       		distribute=$(( $distribute + $remainder ))
-                      		echo "distribute $distribute j $j"
                      fi
                      if [[ $j -eq 1 ]]
                        then
                       		distribute=$(( $distribute - $remainder ))
-                      		echo "count $distribute j $j"
                      fi
                           arrayListAZ[$j]=$(echo ${arrayListAZ[$j]} | sed 's/","/,/g; s/^"\|"$//g')
-                          echo ${arrayListAZ[$j]}
                           subnet_id=$(aws ec2 describe-subnets --filters Name=vpc-id,Values=$vpcId,Name="availability-zone",Values=${arrayListAZ[$j]} | grep -m 1 'SubnetId' |  awk -F ":" '{print $2}' || aws ec2 create-subnet --vpc-id $vpcId --availability-zone ${arrayListAZ[$j]} --cidr-block 100.0.0.128/25 |  grep 'SubnetId' | awk -F ":" '{print $2}' | sed 's/[",]//g')
                           #remove double qoutes from word
                           subnet_id=$(echo $subnet_id | sed 's/,*$//g' | sed 's/","/,/g; s/^"\|"$//g')
-                          createInstance ${regionArray[$i]} ${imageIdArray[$i]} $distribute $subnet_id $security_group_id $key_value_pair_name ${arrayListAZ[$j]}
+                          createInstance ${regionArray[$i]} ${imageIdArray[$i]} $distribute $subnet_id $security_group_id $key_value_pair_name ${arrayListAZ[$j]} ${instanceTypeArray[$i]}
                   done
                  #create required instances
                  #wait for 5 second
@@ -266,6 +256,7 @@ function createInstance()
   temp_security_group_id=$5
   temp_key_value=$6
   temp_availability_zone=$7
+  temp_instanse_type=$8
   echo "Do you want to create aws instance? (y)es or (n)o"
   read userInputForCreatingInstance
    if [ $userInputForCreatingInstance == "y" ] || [ $userInputForCreatingInstance == "Y" ]
@@ -274,7 +265,7 @@ function createInstance()
        then
          echo "You cannot create more than 20 instance or Increase limit on No. of instances per region from AWS EC2 console"
        else
-            if aws ec2 run-instances --image-id $temp_image_id --count $temp_count --instance-type $instance_type --key-name $temp_key_value --security-group-ids $temp_security_group_id --subnet-id $temp_subnet_id --region $temp_region --placement AvailabilityZone=$temp_availability_zone
+            if aws ec2 run-instances --image-id $temp_image_id --count $temp_count --instance-type $temp_instanse_type --key-name $temp_key_value --security-group-ids $temp_security_group_id --subnet-id $temp_subnet_id --region $temp_region --placement AvailabilityZone=$temp_availability_zone
           then
             echo "successfully created $temp_count instances"
           else
@@ -283,15 +274,64 @@ function createInstance()
         fi
     fi
 }
+function importPublicKey()
+{
+  if aws ec2 import-key-pair --key-name $keyPairName --public-key-material $1
+    then
+      echo "Sucesss"
+    else
+     echo "Fail"
+  fi
+}
 
+function createKeyPair()
+{
+  extension=.pem
+  extension1=.pub
+  keyPairNamePrivate=$keyPairName$extension
+  keyPairPubName=$keyPairName$extension1
+  if [[ -f $keyPairName.pem ]]
+      then
+      echo "File Exist private key"
+  else
+      if openssl genrsa -out $keyPairNamePrivate 2048
+      then
+        echo
+      fi
+  fi
+}
+
+function extractPublicKey()
+{
+  if [[ -f $keyPairPubName ]]
+      then
+      echo "File Exist public key"
+  else
+        echo "In else"
+        if openssl rsa -in $keyPairNamePrivate -pubout > $keyPairPubName
+        then
+          echo "successfully created public file"
+        else
+          echo "Fail to create"
+        fi
+   fi
+   publicKey=$(cat $keyPairPubName)
+   prefix="-----BEGIN PUBLIC KEY-----"
+   suffix="-----END PUBLIC KEY-----"
+   publicKey=$(echo "$publicKey" | sed -e "s/^$prefix//" -e "s/$suffix$//")
+   publicKey=$(echo $publicKey | sed 's/ //g')
+}
 #All functions are executed sequentially
 #check numberOfArguments are correct or not
 numberOfArguments $1
 #install aws cli
 installAwsCli
+#read only AWS cli configuration paramwter
 readFromFile $1
 #configure aws IAM user to aws cli
 configureAwsAccount
+createKeyPair
+extractPublicKey
 #read all required parameter from json file
 readFromJsonFile $1
  # createOneIPAndPublicDNSFile

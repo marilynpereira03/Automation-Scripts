@@ -23,20 +23,20 @@ function readFromJsonFile(){
     #first argument is a json file name
       filename=$1
       #parse region name
-      region=$(jq .region[] $filename)
+      region=$(jq ".region | .[] | .region" $filename)
       activeDelegates=$(jq .activeDelegates $filename)
       tokenShortName=$(jq .tokenShortName $filename)
       set -f
-        regionArray=(${region//,/ })
+        regionArray=(${region})
         for i in "${!regionArray[@]}"
         do
-            regionArray[$i]=$(echo ${regionArray[i]} | sed 's/","/,/g; s/^"\|"$//g')
-            echo ${regionArray[i]}
+            regionArray[$i]=$(echo ${regionArray[$i]} | sed 's/","/,/g; s/^"\|"$//g')
+            echo ${regionArray[$i]}
         done
         #Calculate total number of instances
         total_instance=0
-        count=$(jq .count[] $filename)
-        countArray=(${count//,/ })
+        count=$(jq ".region | .[] | .count" $filename)
+        countArray=(${count})
         for i in "${!countArray[@]}"
         do
           total_instance=$(( $total_instance + ${countArray[$i]} ))
