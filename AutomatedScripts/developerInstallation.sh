@@ -14,15 +14,22 @@ function readArgumentsFromFile()
 {
   fname=$1
   activeDelegates=$(jq .activeDelegates $fname)
+  #Remove double quotes
+  activeDelegates=$(echo $activeDelegates | sed 's/","/,/g; s/^"\|"$//g')
   blockTime=$(jq .blockTime $fname)
+  blockTime=$(echo $blockTime | sed 's/","/,/g; s/^"\|"$//g')
   distance=$(jq .distance $fname)
+  distance=$(echo $distance | sed 's/","/,/g; s/^"\|"$//g')
   logo=$(jq .logo $fname)
   milestones=$(jq .milestones[] $fname)
   echo "milestones In developerInstallation $milestones"
   offset=$(jq .offset $fname)
+  offset=$(echo $offset | sed 's/","/,/g; s/^"\|"$//g')
   rewardType=$(jq .rewardType $fname)
   fixedLastReward=$(jq .fixedLastReward $fname)
+  fixedLastReward=$(echo $fixedLastReward | sed 's/","/,/g; s/^"\|"$//g')
   blockSize=$(jq .blockSize $fname)
+  blockSize=$(echo $blockSize | sed 's/","/,/g; s/^"\|"$//g')
   token=$(jq .token $fname)
 }
 

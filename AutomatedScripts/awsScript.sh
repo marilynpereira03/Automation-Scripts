@@ -58,18 +58,18 @@ function numberOfArguments(){
     fi
 }
 
-#read json file for access_key_id and secret access key
+#read json file for accessKeyId and secret access key
 function readFromFile(){
  local fname=$1
  #parse key pair file name
  keyPairName=$(jq .keyPairName $fname)
  keyPairName=$(echo $keyPairName | sed 's/","/,/g; s/^"\|"$//g')
   #parse access key id
-  access_key_id=$(jq .access_key_id $fname)
-  access_key_id=$(echo $access_key_id | sed 's/","/,/g; s/^"\|"$//g')
-  #parse  secret_access_key
-  secret_access_key=$(jq .secret_access_key $fname)
-  secret_access_key=$(echo $secret_access_key | sed 's/","/,/g; s/^"\|"$//g')
+  accessKeyId=$(jq .accessKeyId $fname)
+  accessKeyId=$(echo $accessKeyId | sed 's/","/,/g; s/^"\|"$//g')
+  #parse  secretAccessKey
+  secretAccessKey=$(jq .secretAccessKey $fname)
+  secretAccessKey=$(echo $secretAccessKey | sed 's/","/,/g; s/^"\|"$//g')
 }
 
 #read json file [ All remaining parameters for creating instance]
@@ -91,10 +91,10 @@ function readFromJsonFile(){
         done
         #end of region name
         #parse image name
-        image_id=$(jq ".region | .[] | .image_id" $filename)
+        imageId=$(jq ".region | .[] | .imageId" $filename)
 
         set -f
-          imageIdArray=(${image_id})
+          imageIdArray=(${imageId})
           for i in "${!imageIdArray[@]}"
           do
               imageIdArray[$i]=$(echo ${imageIdArray[i]} | sed 's/","/,/g; s/^"\|"$//g')
@@ -107,7 +107,7 @@ function readFromJsonFile(){
             countArray=(${count})
             for i in "${!countArray[@]}"
             do
-                echo
+              countArray[$i]=$(echo ${countArray[$i]} | sed 's/","/,/g; s/^"\|"$//g')
             done
             #end of count
 
@@ -198,13 +198,13 @@ function configureAwsAccount()
 
          #AWS configuration
 
-         if aws configure set aws_secret_access_key $secret_access_key
+         if aws configure set aws_secretAccessKey $secretAccessKey
            then
            echo "Configured successfully"
          else
            echo "Problem in Configuration1"
          fi
-         if aws configure set aws_access_key_id $access_key_id
+         if aws configure set aws_accessKeyId $accessKeyId
            then
            echo "Configured successfully"
          else
@@ -250,7 +250,7 @@ function setInboundRulePort() {
 function createInstance()
 {
   temp_region=$1
-  temp_image_id=$2
+  temp_imageId=$2
   temp_count=$3
   temp_subnet_id=$4
   temp_security_group_id=$5
@@ -265,7 +265,7 @@ function createInstance()
        then
          echo "You cannot create more than 20 instance or Increase limit on No. of instances per region from AWS EC2 console"
        else
-            if aws ec2 run-instances --image-id $temp_image_id --count $temp_count --instance-type $temp_instanse_type --key-name $temp_key_value --security-group-ids $temp_security_group_id --subnet-id $temp_subnet_id --region $temp_region --placement AvailabilityZone=$temp_availability_zone
+            if aws ec2 run-instances --image-id $temp_imageId --count $temp_count --instance-type $temp_instanse_type --key-name $temp_key_value --security-group-ids $temp_security_group_id --subnet-id $temp_subnet_id --region $temp_region --placement AvailabilityZone=$temp_availability_zone
           then
             echo "successfully created $temp_count instances"
           else

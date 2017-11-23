@@ -25,7 +25,12 @@ function readFromJsonFile(){
       #parse region name
       region=$(jq ".region | .[] | .region" $filename)
       activeDelegates=$(jq .activeDelegates $filename)
+      activeDelegates=$(echo $activeDelegates | sed 's/","/,/g; s/^"\|"$//g')
       tokenShortName=$(jq .tokenShortName $filename)
+      keyPairName=$(jq .keyPairName $filename)
+      keyPairName=$(echo $keyPairName | sed 's/","/,/g; s/^"\|"$//g')
+
+
       set -f
         regionArray=(${region})
         for i in "${!regionArray[@]}"
@@ -39,6 +44,7 @@ function readFromJsonFile(){
         countArray=(${count})
         for i in "${!countArray[@]}"
         do
+          countArray[$i]=$(echo ${countArray[$i]} | sed 's/","/,/g; s/^"\|"$//g')
           total_instance=$(( $total_instance + ${countArray[$i]} ))
         done
         echo "total_instance $total_instance"
@@ -76,7 +82,7 @@ if cd && cd $pathToCreateConfigFile && node createGenesisBlockSample.js -p 4001 
       do
         ipListFilePath=$path/ipList_${regionArray[$i]}.txt
         publicDNSFilePath=$path/publicDnsList_${regionArray[$i]}.txt
-        pathOfPemFile=$path/blockpool_sample_${regionArray[$i]}.pem
+        pathOfPemFile=$path/$keyPairName.pem
         #Launch network
         if bash automatedScript.sh $ipListFilePath $pathOfPemFile $pathForConfigFile $pathForGenesisBlockFile $devloperInstallationSteps $startNodeScriptPath
          then
